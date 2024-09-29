@@ -27,11 +27,12 @@ type Model struct {
 	words   *[]string
 	addWord chan bool
 
-	typedWords []string
+	TypedWords []string // Exported field to access typed words
 	pos        [2]int
 
-	started   bool
-	startTime time.Time
+	started     bool
+	startTime   time.Time
+	TotalErrors int // Added field to count total errors
 }
 
 func New(config *config.Model) *Model {
@@ -45,7 +46,7 @@ func New(config *config.Model) *Model {
 		config:     config,
 		words:      GenerateWords(config, wordsController),
 		addWord:    wordsController,
-		typedWords: []string{""},
+		TypedWords: []string{""}, // Initialize exported field
 	}
 
 	if config.TimerStyle == "bar" {
@@ -67,11 +68,12 @@ func New(config *config.Model) *Model {
 }
 
 func (m *Model) Init() tea.Cmd {
-	return tickCmd()
+	return tickCmd(m) // Pass the model to tickCmd
 }
 
-func tickCmd() tea.Cmd {
-	return tea.Tick(time.Millisecond*50, func(t time.Time) tea.Msg {
+func tickCmd(m *Model) tea.Cmd { // Pass the model to tickCmd
+	return tea.Tick(time.Millisecond*1000, func(t time.Time) tea.Msg { // Change to 1000 ms for 1 second
+		m.startTime = t // Update startTime every second
 		return t
 	})
 }
@@ -97,18 +99,18 @@ func (m *Model) calculateProgressPercentage() float64 {
 		return (float64(m.config.Time) - float64(time.Now().Sub(m.startTime).Seconds())) / float64(m.config.Time)
 	}
 
-	return float64(len(m.typedWords)) / float64(len(*m.words))
+	return float64(len(m.TypedWords)) / float64(len(*m.words))
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case time.Time:
-		return m, tea.Batch(tickCmd(), m.ProgressBar.SetPercent(m.calculateProgressPercentage()))
+		return m, tea.Batch(tickCmd(m), m.ProgressBar.SetPercent(m.calculateProgressPercentage()))
 
 	case tea.KeyMsg:
 		switch msg.String() {
 		case tea.KeySpace.String():
-			m.typedWords = append(m.typedWords, "")
+			m.TypedWords = append(m.TypedWords, "")
 			if !(m.config.Mode == "words" && m.config.Words != 0) {
 				m.addWord <- true
 			}
@@ -119,11 +121,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.pos[1]--; m.pos[1] < 0 {
 				if m.pos[0] > 0 {
 					m.pos[0]--
-					m.typedWords = m.typedWords[:len(m.typedWords)-1]
+					m.TypedWords = m.TypedWords[:len(m.TypedWords)-1]
 				}
-				m.pos[1] = len(m.typedWords[m.pos[0]])
+				m.pos[1] = len(m.TypedWords[m.pos[0]])
 			} else {
-				m.typedWords[m.pos[0]] = m.typedWords[m.pos[0]][:m.pos[1]]
+				m.TypedWords[m.pos[0]] = m.TypedWords[m.pos[0]][:m.pos[1]]
 			}
 
 		default:
@@ -132,7 +134,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.started = true
 			}
 
-			m.typedWords[len(m.typedWords)-1] += msg.String()
+			m.TypedWords[len(m.TypedWords)-1] += msg.String()
 			m.pos[1]++
 		}
 

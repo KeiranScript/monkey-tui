@@ -32,10 +32,10 @@ func (m *Model) partitionedRows() (rows []rowModel) {
 	var row rowModel
 	for i := range words {
 		var word string
-		if i >= len(m.typedWords) || len(words[i]) >= len(m.typedWords[i]) {
+		if i >= len(m.TypedWords) || len(words[i]) >= len(m.TypedWords[i]) {
 			word = words[i]
 		} else {
-			word = m.typedWords[i]
+			word = m.TypedWords[i]
 		}
 
 		wordLen := len(word) + 1
@@ -86,17 +86,17 @@ func (m *Model) focusedRows(rows []rowModel) (focusedRows []rowModel) {
 func (m *Model) renderWord(i int) string {
 	words := *m.words
 
-	if i >= len(m.typedWords) {
+	if i >= len(m.TypedWords) {
 		return m.config.StyleUntyped(style, words[i]+" ").Render()
 	}
 
 	wordStyle := style
-	if i < m.pos[0] && words[i] != m.typedWords[i] {
+	if i < m.pos[0] && words[i] != m.TypedWords[i] {
 		wordStyle = m.config.StyleWrongWordUnderline(wordStyle)
 	}
 
 	var renderedWord strings.Builder
-	for j, char := range m.typedWords[i] {
+	for j, char := range m.TypedWords[i] {
 		str := string(char)
 		switch {
 		case j >= len(words[i]):
@@ -109,8 +109,8 @@ func (m *Model) renderWord(i int) string {
 	}
 
 	var remainingWord string
-	if len(words[i]) > len(m.typedWords[i]) {
-		remainingWord += words[i][len(m.typedWords[i]):]
+	if len(words[i]) > len(m.TypedWords[i]) {
+		remainingWord += words[i][len(m.TypedWords[i]):]
 	}
 	remainingWord += " "
 
